@@ -23,6 +23,7 @@ module Ferrum
                   :v8_version, :webkit_version, :xvfb
 
       extend Forwardable
+
       delegate path: :command
 
       def self.start(*args)
@@ -196,15 +197,21 @@ module Ferrum
                        end
         end
 
-        response = JSON.parse(::Net::HTTP.get(URI(url.to_s)))
+        http = Net::HTTP.new(url.host, url.port)
+        request = Net::HTTP::Get.new(URI(url.to_s))
+        request["Host"] = "127.0.0.1:#{url.port}"
+        response = http.request(request)
+        data = JSON.parse(response.body)
 
-        @v8_version = response["V8-Version"]
-        @browser_version = response["Browser"]
-        @webkit_version = response["WebKit-Version"]
-        @default_user_agent = response["User-Agent"]
-        @protocol_version = response["Protocol-Version"]
+        data["webSocketDebuggerUrl"] = data["webSocketDebuggerUrl"].gsub("127.0.0.1", url.host)
 
-        response
+        @v8_version = data["V8-Version"]
+        @browser_version = data["Browser"]
+        @webkit_version = data["WebKit-Version"]
+        @default_user_agent = data["User-Agent"]
+        @protocol_version = data["Protocol-Version"]
+
+        data
       rescue JSON::ParserError
         # nop
       end
