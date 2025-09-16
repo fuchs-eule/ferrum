@@ -5,6 +5,7 @@ require "ferrum/context"
 module Ferrum
   class Contexts
     ALLOWED_TARGET_TYPES = %w[page iframe].freeze
+    ABOUT_BLANK = "about:blank"
 
     include Enumerable
 
@@ -46,11 +47,18 @@ module Ferrum
       context
     end
 
-    def dispose(context_id)
+    def dispose(context_id) # rubocop:disable Naming/PredicateMethod
       context = @contexts[context_id]
       context.close_targets_connection
-      @client.command("Target.disposeBrowserContext", browserContextId: context.id)
-      @contexts.delete(context_id)
+
+      begin
+        @client.command("Target.disposeBrowserContext", browserContextId: context.id)
+      rescue NoExecutionContextError
+        warn "Browser context #{context.id} was already disposed" unless context.page&.url == ABOUT_BLANK
+      ensure
+        @contexts.delete(context_id)
+      end
+
       true
     end
 

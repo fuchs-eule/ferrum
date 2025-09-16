@@ -61,6 +61,7 @@ module Ferrum
 
   class Client
     extend Forwardable
+
     delegate %i[timeout timeout=] => :options
 
     attr_reader :ws_url, :options, :subscriber
@@ -165,7 +166,7 @@ module Ferrum
            "Inspected target navigated or closed"
         raise NodeNotFoundError, error
       # Context is lost, page is reloading
-      when "Cannot find context with specified id"
+      when "Cannot find context with specified id", /Failed to find context with id/
         raise NoExecutionContextError, error
       when "No target with given id found"
         raise NoSuchPageError
